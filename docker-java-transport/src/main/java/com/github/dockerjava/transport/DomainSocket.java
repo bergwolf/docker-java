@@ -23,7 +23,9 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 
 import com.github.dockerjava.transport.FileDescriptor.Handle;
+import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.LastErrorException;
+import com.sun.jna.Pointer;
 import com.sun.jna.Native;
 import com.sun.jna.Platform;
 
@@ -66,6 +68,10 @@ public abstract class DomainSocket extends AbstractSocket {
 
     private FileDescriptor open(String path) {
         int handle = socket(PF_LOCAL, SOCK_STREAM, 0);
+        setsockopt(handle, 1/*SOL_SOCKET*/, 20/*SO_RCVTIMEO*/, new IntByReference(1000).getPointer(), 4);
+        setsockopt(handle, 1/*SOL_SOCKET*/, 21/*SO_SNDTIMEO*/, new IntByReference(1000).getPointer(), 4);
+        setsockopt(handle, 1/*SOL_SOCKET*/, 66/*SO_RCVTIMEO_NEW*/, new  IntByReference(1000).getPointer(), 4);
+        setsockopt(handle, 1/*SOL_SOCKET*/, 67/*SO_SNDTIMEO_NEW*/, new IntByReference(1000).getPointer(), 4);
         connect(path, handle);
         return new FileDescriptor(handle, this::close);
     }
@@ -118,6 +124,8 @@ public abstract class DomainSocket extends AbstractSocket {
     protected abstract void connect(String path, int handle);
 
     private native int socket(int domain, int type, int protocol) throws LastErrorException;
+
+    private static native int setsockopt(int fd, int level, int option, Pointer value, int len) throws LastErrorException;
 
     private native int read(int fd, ByteBuffer buffer, int count) throws LastErrorException;
 
